@@ -78,7 +78,7 @@ b0 = reg2$coefficients[1]
 exp(b0)
 ```
 
-# Utilizanod varáveis categóricas
+# Utilizando varáveis categóricas
 Vamos montar o sguinte modelo de regressão:
 Y = isei88, X1 = anosesco, X2 = raçabin
 
