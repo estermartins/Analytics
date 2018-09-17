@@ -1,0 +1,97 @@
+---
+title: "Regressão Polinimial"
+author: "Ester Pereira Martins"
+output: html_notebook
+---
+
+```{r setup, inlcude = F}
+if (!"readr" %in% installed.packages()) install.packages("descr")
+if (!"dplyr" %in% installed.packages()) install.packages("dplyr")
+if (!"ggplot2" %in% installed.packages()) install.packages("ggplot2")
+if (!"haven" %in% installed.packages()) install.packages("haven")
+
+# Carregando as bibliotecas necessárias
+library(descr)
+library(dplyr)
+library(ggplot2)
+library(haven)
+
+bd = read_sav("https://github.com/neylsoncrepalde/MODUS/blob/master/PNAD96_25a60_Modus.sav?raw=true")
+dim(bd)
+names(bd)
+```
+
+Vamos investigar a relação entre as variáveis idade e renda.
+Por acaso da vida, a variável idade(bruta) não está no banco. Vamos recontruí-la a partir das informações que temos do título do banco de dados e da média variável.
+
+```{r reconstroiidade}
+bd$idade = bd$idadecen + abs(min(bd$idadecen))
+summary(bd$idadecen)
+summary(bd$idade)
+bd$idade = bd$idade + 25
+summary(bd$idade)
+```
+
+Agora vamos verificar a média da renda para cada idade no banco de dados.
+```{r medrenda}
+calcrenda = function(x){
+  med = mean(bd$lnrenda[bd$idade == x])
+  return(med)
+}
+medrenda = sapply(25:60, calcrenda)
+medrenda
+```
+
+Agora vamos investigar a relação entre a idade e renda. Para isso, vamos plotar um gráfico de dispersão mostrando a relação entre as duas variáveis.
+
+```{r plots}
+plot(25:60, medrenda)
+ggplot(NULL, aes(x = 25:60, y = medrenda)) + geom_point() # Relacao polinomial quadratica
+```
+
+# Idade explicando a renda
+Se nós queremos utilizar um modelo de regressão linear para explicar a renda, podemos fazer o seguinte:
+
+```{r reg1}
+options(scipen = 999)
+reg1 = lm(lnrenda ~ idade + I(idade^2, data = bd))
+summary(reg1)
+```
+
+O intercepto desse modelo é muito esquisito. O modelo nos diz que um individuo de idade 0 deve ganhar em torno de 36 reais. Esquisito...
+Testanto multicolinearidade.
+
+```{r multico}
+install.packages("car")
+library(car)
+vif(reg1)
+```
+
+O modelo é muito problemático pois possui um índice altíssimo de VIF indicando forte multicolinearidade. Isso faz muito sentido se pensarmos que a idade e a idade ao quadrado possuem correlação perfeita (igual a 1).
+Para resolver esse problema usamos a idade centralizada na média.
+
+```{r reg2}
+reg2 = lm(lnrenda ~ idadecen + I(idadecen^2), bd)
+vif(reg2)
+summary(reg2)
+b0 = reg2$coefficients[1]
+exp(b0)
+```
+
+# Utilizanod varáveis categóricas
+Vamos montar o sguinte modelo de regressão:
+Y = isei88, X1 = anosesco, X2 = raçabin
+
+```{r reg3}
+reg3 = lm(isei88 ~anosesco + raçabin, bd)
+summary(reg3) 
+```
+
+Agora vamos plotar as duas retas de regressão, uma para brancos, outra para negros.
+```{r plot}
+b0 = reg3$coefficients[1]
+b1 = reg3$coefficients[2]
+b2 = reg3$coefficients[3]
+ggplot(bd, aes(x = anosesco, y = isei88)) + geom_point() + geom_abline(intercept = b0, slope = b1, col = "red", lwd = 1) + geom_abline(intercept = b0 + b2, slope = b1, col = "blue", lwd = 1)
+```
+
